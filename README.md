@@ -1,7 +1,7 @@
 # Environmental Monitor
 
 ## Project Overview
-Environmental Monitor is an advanced environmental monitoring system based on Arduino that collects and displays data from various environmental sensors.
+Environmental Monitor is an advanced environmental monitoring system based on Adafruit Feather M0 that collects and displays data from various environmental sensors.
 
 ## Features
 The system measures and displays the following environmental parameters:
@@ -11,7 +11,7 @@ The system measures and displays the following environmental parameters:
 - Light intensity (lux)
 
 ## Components
-- Arduino microcontroller
+- Adafruit Feather M0
 - BME280 sensor (temperature, humidity, pressure)
 - APDS9301 sensor (light intensity)
 - 128x32 OLED display
@@ -27,7 +27,7 @@ The project is designed with a modular architecture, consisting of:
 - Multi-layered sensor handling abstraction
 - Dynamic environmental data reading
 - Information display on OLED screen
-- Simultaneous data logging to serial monitor
+
 
 ## Required Libraries
 - Wire.h
@@ -40,11 +40,12 @@ The project is designed with a modular architecture, consisting of:
 ## Setup
 1. Connect sensors according to the diagram
 2. Install required libraries
-3. Upload code to Arduino
+3. Upload code to Feather M0
 
 ## Operation Mode
 - Data reading every 2 seconds
 - Display on OLED screen
 - Simultaneous logging to serial monitor
+
 
 
