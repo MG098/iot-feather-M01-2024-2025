@@ -1,0 +1,1 @@
+#define CAPTURE_INTERVAL 2000
