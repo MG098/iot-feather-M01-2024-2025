@@ -4,10 +4,13 @@
 #include "Sensors.hpp"
 #include "Display_Manager.hpp"
 #include "Utils.hpp"
+#include "WifiManager.hpp"
 #include "constants.h"
 
-// Funkcje inicjalizacyjne
-void setup();
-void loop();
+// Global WifiManager instance
+extern WifiManager wifiManager;
+
+// Function declarations
+void displayStartupMessage();
 
 #endif // MAIN_HPP
