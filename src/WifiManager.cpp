@@ -8,12 +8,10 @@ WifiManager::WifiManager() : _server(80) {
 }
 
 void WifiManager::startAccessPoint() {
-    // Rozłącz z aktualnym połączeniem
-    WiFi.disconnect();
+    WiFi.end();
     
     Serial.println("Rozpoczynanie konfiguracji Wi-Fi w trybie Access Point...");
     
-    // Ustaw tryb Access Point
     WiFi.config(IPAddress(192, 168, 1, 1));
     WiFi.beginAP(AP_SSID, AP_PASS);
     
@@ -26,42 +24,35 @@ void WifiManager::startAccessPoint() {
 }
 
 bool WifiManager::connectToWiFi(const char* ssid, const char* password) {
-    // Rozłącz z poprzedniego połączenia
     WiFi.end();
     
     Serial.print("\n\u0141ączenie z siecią Wi-Fi: ");
     Serial.println(ssid);
 
-    // Spróbuj kilka razy nawiązać połączenie
     for (int attempt = 1; attempt <= 3; attempt++) {
         Serial.print("Próba połączenia (");
         Serial.print(attempt);
         Serial.println(")...");
 
-        // Rozpocznij próbę połączenia
         WiFi.begin(ssid, password);
 
-        // Odczekaj maksymalnie 10 sekund na połączenie
         unsigned long startTime = millis();
         while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
             delay(500);
             Serial.print(".");
         }
 
-        // Sprawdź status połączenia
         if (WiFi.status() == WL_CONNECTED) {
             Serial.println("\nPołączono z siecią Wi-Fi.");
             Serial.print("Adres IP: ");
             Serial.println(WiFi.localIP());
             
-            // Zapisz pomyślnie użyte dane
             strncpy(_ssid, ssid, sizeof(_ssid) - 1);
             strncpy(_password, password, sizeof(_password) - 1);
             
             return true;
         }
 
-        // Krótka przerwa przed kolejną próbą
         delay(1000);
     }
 
@@ -85,28 +76,23 @@ void WifiManager::handleWebConfig() {
 
     if (request.indexOf("GET /submit?") >= 0) {
         if (parseFormData(request)) {
-            // Wyślij odpowiedź przed próbą połączenia
             client.print("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n");
-            client.print("<h1>Dane zostały zapisane! Próba połączenia z siecią Wi-Fi...</h1>");
+            client.print("<h1>Dane zostały zapisane!</h1>");
             client.stop();
 
-            // Krótka przerwa
             delay(1000);
-
-            // Próba połączenia z siecią
             if (!connectToWiFi(_ssid, _password)) {
                 Serial.println("Nie udało się połączyć. Przywracanie trybu Access Point...");
                 startAccessPoint();
                 return;
             }
 
-            // Jeśli połączenie się powiodło, możesz dodać dodatkowe działania
             Serial.println("Pomyślnie połączono z siecią.");
             return;
         }
     }
 
-    // Wysłanie strony konfiguracyjnej
+
     sendConfigPage(client);
 }
 
