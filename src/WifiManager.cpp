@@ -27,7 +27,7 @@ void WifiManager::startAccessPoint() {
 
 bool WifiManager::connectToWiFi(const char* ssid, const char* password) {
     // Rozłącz z poprzedniego połączenia
-    WiFi.disconnect();
+    WiFi.end();
     
     Serial.print("\n\u0141ączenie z siecią Wi-Fi: ");
     Serial.println(ssid);
