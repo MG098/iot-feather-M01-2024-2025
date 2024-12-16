@@ -1,11 +1,13 @@
 #include "WifiManager.hpp"
 #include "constants.h"
 
+
 WifiManager::WifiManager() : _server(80) {
     memset(_ssid, 0, sizeof(_ssid));
     memset(_password, 0, sizeof(_password));
     memset(_token, 0, sizeof(_token));
 }
+
 
 void WifiManager::startAccessPoint() {
     WiFi.end();
@@ -23,21 +25,22 @@ void WifiManager::startAccessPoint() {
     Serial.println("Serwer HTTP uruchomiony.");
 }
 
+
 bool WifiManager::connectToWiFi(const char* ssid, const char* password) {
     WiFi.end();
     
     Serial.print("\n\u0141ączenie z siecią Wi-Fi: ");
-    Serial.println(ssid);
+    Serial.print(ssid);
 
     for (int attempt = 1; attempt <= 3; attempt++) {
-        Serial.print("Próba połączenia (");
+        Serial.print("\r\nPróba połączenia (");
         Serial.print(attempt);
         Serial.println(")...");
 
         WiFi.begin(ssid, password);
 
         unsigned long startTime = millis();
-        while (WiFi.status() != WL_CONNECTED && millis() - startTime < 10000) {
+        while (WiFi.status() != WL_CONNECTED && millis() - startTime < 5000) {
             delay(500);
             Serial.print(".");
         }
@@ -60,41 +63,57 @@ bool WifiManager::connectToWiFi(const char* ssid, const char* password) {
     return false;
 }
 
-void WifiManager::handleWebConfig() {
-    WiFiClient client = _server.available();
+
+bool WifiManager::checkAvailability() {
+    bool isAvailable = false;
+
+    client = _server.available();
     if (!client) {
-        return;
+        isAvailable =  false;
     }
 
-    while (!client.available()) {
-        delay(1);
+    if (!client.available()) {
+        delay(50);
+        return isAvailable;
     }
 
-    String request = client.readStringUntil('\r');
-    Serial.println(request);
-    client.flush();
+    isAvailable = true;
+    return isAvailable;
+}
 
-    if (request.indexOf("GET /submit?") >= 0) {
+
+bool WifiManager::handleWebConfig() {
+    bool isWebConfigured = 0;
+
+    if(checkAvailability()){
+        String request = client.readStringUntil('\r');
+        Serial.println(request);
+        client.flush();
+
+        if (request.indexOf("GET /submit?") < 0) {
+            sendConfigPage(client);
+            return false;
+        }
+
+
         if (parseFormData(request)) {
             client.print("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n");
             client.print("<h1>Dane zostały zapisane!</h1>");
             client.stop();
-
             delay(1000);
+
             if (!connectToWiFi(_ssid, _password)) {
                 Serial.println("Nie udało się połączyć. Przywracanie trybu Access Point...");
                 startAccessPoint();
-                return;
+            }else{
+                Serial.println("Pomyślnie połączono z siecią.");
+                isWebConfigured = true;
             }
-
-            Serial.println("Pomyślnie połączono z siecią.");
-            return;
         }
     }
-
-
-    sendConfigPage(client);
+    return isWebConfigured;
 }
+
 
 bool WifiManager::parseFormData(const String& request) {
     int ssidIndex = request.indexOf("ssid=");
@@ -118,6 +137,7 @@ bool WifiManager::parseFormData(const String& request) {
     }
     return false;
 }
+
 
 void WifiManager::sendConfigPage(WiFiClient& client) {
     client.print("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n");
@@ -144,8 +164,87 @@ void WifiManager::sendConfigPage(WiFiClient& client) {
     client.stop();
 }
 
+
 void WifiManager::getStoredCredentials(char* ssid, char* password, char* token) {
     strncpy(ssid, _ssid, 32);
     strncpy(password, _password, 64);
     strncpy(token, _token, 64);
 }
+
+
+bool WifiManager::openCloudConnection(){
+    if (!client.connected()){
+        Serial.print("Connecting to \"");
+        Serial.print(_Cloudserver);
+        Serial.print("\"...");
+
+        if (!client.connect("webhook.site", 80)) {
+            Serial.println(" failed");
+            return false;
+        }else {
+            Serial.println(": Cloud connected");
+            return true;
+        }
+    }else {
+        Serial.println("Already connected");
+        return true;
+    }
+}
+
+
+void WifiManager::publishData(SensorData data){
+    String jsonstr = "";
+    int jsonlen = 0;
+    jsonlen = 0;
+
+    /* Compose JSON */
+    jsonbuf["Temperature"] = data.temperature;
+    jsonbuf["Humidity"] = data.humidity;
+    jsonbuf["Pressure"] = data.pressure;
+    jsonbuf["Luminance"] = data.lux;
+
+    serializeJson(jsonbuf, jsonstr);
+    jsonlen = jsonstr.length();
+
+    /* Compose HTTP POST request*/
+    //reqstr = "POST /api/v1/" + _Cloudtoken + "/telemetry\r\nHTTP/1.1\r\nHost: " + _Cloudserver + "\r\nAccept: */*\r\nContent-Type: application/json\r\nContent-Length: " + jsonlen + "\r\n\r\n" + jsonstr + "\r\n";
+    reqstr = "POST /" + _Cloudtoken + " HTTP/1.1\r\nHost: " + _Cloudserver + "\r\nContent-Length: " + jsonlen + "\r\n\r\n" + jsonstr;
+
+    Serial.println("\r\nHTTP Request: ");
+    Serial.print(reqstr);
+
+    /* Send HTTP POST request*/
+    client.print(reqstr);
+
+    /* Wait till the answer of the server */
+    uint32_t start = millis();
+
+    while (client.connected() && !client.available() && millis() - start < 2000L) {
+        delay(50);
+    }
+
+    /* Read received HTTP reply */
+    Serial.println("\r\nHTTP Reply: ");
+
+    if (client.available()){
+        start = millis();
+        while (client.connected() && (millis() - start) < 5000L) {
+            if (client.available()) {
+                Serial.write(client.read());
+                start = millis();
+            }
+        }
+    } else {
+        Serial.println("... No Reply received\r\n");
+    }
+}
+
+
+void WifiManager::closeCloudconnection(void) {
+  if (client.connected()) {
+    client.stop();
+    Serial.println("Cloud disconnected\r\n");
+  }
+}
+
+

@@ -2,8 +2,10 @@
 #include "main.hpp"
 #include "WifiManager.hpp"
 
+
 // Create global WifiManager instance
 WifiManager wifiManager;
+bool isWebConfigured = false;
 
 void setup() {
   Serial.begin(115200);
@@ -25,13 +27,16 @@ void setup() {
 }
 
 unsigned long lastMillis = 0;
-void loop() {
-  // Handle web configuration
-  wifiManager.handleWebConfig();
 
+void loop() {
+  /* Handle web configuration */
+  if(!isWebConfigured){
+    isWebConfigured = wifiManager.handleWebConfig();
+  }
+
+  /* Sensor data capture and display */
   unsigned long currentMillis = millis();
 
-  // Sensor data capture and display
   if(currentMillis - lastMillis >= CAPTURE_INTERVAL){
     SensorData sensorData = readSensors();
     printToSerial(sensorData);
@@ -41,5 +46,15 @@ void loop() {
     Serial.print("Adres IP: ");
     IPAddress apip = WiFi.localIP();
     Serial.println(apip);
+
+
+    /* Establish a connection and publish data to server (Thingsboard) */
+    if(isWebConfigured){
+      if(wifiManager.openCloudConnection()){
+        wifiManager.publishData(sensorData);
+        wifiManager.closeCloudconnection();
+      }
+    }
   }
 }
+
