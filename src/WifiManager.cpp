@@ -89,7 +89,7 @@ bool WifiManager::handleWebConfig() {
         String request = client.readStringUntil('\r');
         Serial.println(request);
         client.flush();
-
+        
         if (request.indexOf("GET /submit?") < 0) {
             sendConfigPage(client);
             return false;
@@ -178,7 +178,7 @@ bool WifiManager::openCloudConnection(){
         Serial.print(_Cloudserver);
         Serial.print("\"...");
 
-        if (!client.connect("webhook.site", 80)) {
+        if (!client.connect("iot.makowski.edu.pl", 80)) {
             Serial.println(" failed");
             return false;
         }else {
@@ -207,8 +207,8 @@ void WifiManager::publishData(SensorData data){
     jsonlen = jsonstr.length();
 
     /* Compose HTTP POST request*/
-    //reqstr = "POST /api/v1/" + _Cloudtoken + "/telemetry\r\nHTTP/1.1\r\nHost: " + _Cloudserver + "\r\nAccept: */*\r\nContent-Type: application/json\r\nContent-Length: " + jsonlen + "\r\n\r\n" + jsonstr + "\r\n";
-    reqstr = "POST /" + _Cloudtoken + " HTTP/1.1\r\nHost: " + _Cloudserver + "\r\nContent-Length: " + jsonlen + "\r\n\r\n" + jsonstr;
+    reqstr = "POST /api/v1/" + _Cloudtoken + "/telemetry HTTP/1.1\r\nHost: " + _Cloudserver + "\r\nAccept: */*\r\nContent-Type: application/json\r\nContent-Length: " + jsonlen + "\r\n\r\n" + jsonstr;
+    //reqstr = "POST /" + _Cloudtoken + " HTTP/1.1\r\nHost: " + _Cloudserver + "\r\nContent-Length: " + jsonlen + "\r\n\r\n" + jsonstr;
 
     Serial.println("\r\nHTTP Request: ");
     Serial.print(reqstr);
