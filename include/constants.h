@@ -1,4 +1,5 @@
 #define CAPTURE_INTERVAL 1000
+#define PUBLISH_INTERVAL 60     //in seconds
 
 #define SSID "....."
 #define PASS "....."
@@ -14,7 +15,7 @@
 #define MQTT_SERVER "iot.makowski.edu.pl"
 #define MQTT_PORT 1883
 
-#define MQTT_CLIENT_ID "e21kqjm1jggeit4bw95h"
-#define MQTT_USER "c5vg3pmhfluak8apbzhw"
-#define MQTT_PASS "v5ghqmep8ku520fgk4uk"
+#define MQTT_CLIENT_ID "....."
+#define MQTT_USER "....."
+#define MQTT_PASS "....."
 #define MQTT_TOPIC "v1/devices/me/telemetry"
