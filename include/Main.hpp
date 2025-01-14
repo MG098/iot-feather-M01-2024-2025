@@ -6,10 +6,12 @@
 #include "Utils.hpp"
 #include "WifiManager.hpp"
 #include "constants.h"
+#include "PubSubClient.h"
+#include "MQTT.hpp"
 
 // Global WifiManager instance
-extern WifiManager wifiManager;
-
+// extern WifiManager wifiManager;
+// extern PubSubClient client;
 // Function declarations
 void displayStartupMessage();
 
