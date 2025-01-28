@@ -1,60 +1,102 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include "main.hpp"
 #include "WifiManager.hpp"
+#include "MQTT.hpp"
+
+WiFiClient wifiClient;
+PubSubClient client(wifiClient);
+SensorData sensorData;
+
+unsigned long lastMillis = 0;
+int seconds = 0;
+
+void setup()
+{
 
 
-// Create global WifiManager instance
-WifiManager wifiManager;
-bool isWebConfigured = false;
 
-void setup() {
   Serial.begin(115200);
+  // while (!Serial)
+  // {
+  //   ;
+  // }
   WiFi.setPins(WIFI_SHIELD_PINS);
-
-  // Inicjalizacja sensorów
-  if (!initSensors()) {
-    Serial.println(F("Sensor initialization failed!"));
-  }
-  
   // Inicjalizacja OLED
-  if (!initOLED()) {
+  if (!initOLED())
+  {
     Serial.println(F("OLED initialization failed!"));
   }
 
-  // Start Access Point for initial configuration
-  wifiManager.startAccessPoint();
+  // Inicjalizacja sensorów
+  if (!initSensors())
+  {
+    Serial.println(F("Sensor initialization failed!"));
+    displayToOledLine("Sensor init failed!");
+  }
+  client.setServer(MQTT_SERVER, MQTT_PORT);
+
+  connectToWiFi();
+  delay(2000);
+  connectToMQTT();
+  delay(2000);
+
   displayStartupMessage();
 }
 
-unsigned long lastMillis = 0;
 
-void loop() {
-  /* Handle web configuration */
-  if(!isWebConfigured){
-    isWebConfigured = wifiManager.handleWebConfig();
+
+
+
+
+
+
+void loop()
+{
+
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    connectToWiFi();
   }
-
-  /* Sensor data capture and display */
+  if (!client.connected())
+  {
+    connectToMQTT();
+  }
+  //Sensor data capture and display
   unsigned long currentMillis = millis();
 
-  if(currentMillis - lastMillis >= CAPTURE_INTERVAL){
-    SensorData sensorData = readSensors();
+  if (currentMillis - lastMillis >= CAPTURE_INTERVAL)
+  {
+    sensorData = readSensors();
     printToSerial(sensorData);
     displayToOLED(sensorData);
+    seconds++;
     lastMillis = currentMillis;
-    
-    Serial.print("Adres IP: ");
-    IPAddress apip = WiFi.localIP();
-    Serial.println(apip);
+  }
 
+  client.loop();
 
-    /* Establish a connection and publish data to server (Thingsboard) */
-    if(isWebConfigured){
-      if(wifiManager.openCloudConnection()){
-        wifiManager.publishData(sensorData);
-        wifiManager.closeCloudconnection();
-      }
+  if (seconds >= PUBLISH_INTERVAL)
+  {
+    seconds = 0;
+  
+    JsonDocument doc;
+    doc["temperature"] = sensorData.temperature;
+    doc["humidity"] = sensorData.humidity;
+    doc["pressure"] = sensorData.pressure;
+    doc["lux"] = sensorData.lux;
+
+    char payload[200];
+    serializeJson(doc, payload, sizeof(payload));
+
+    if (client.publish(MQTT_TOPIC, payload))
+    {
+      Serial.print("Data published: ");
+      Serial.println(payload);
+    }
+    else
+    {
+      Serial.println("Failed to publish data");
     }
   }
 }
-

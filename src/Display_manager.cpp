@@ -1,9 +1,11 @@
 #include <Arduino.h>
 #include "display_manager.hpp"
 #include <Wire.h>
+#include <Adafruit_GFX.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 32
+#define TEXT_HEIGHT 8 
 #define OLED_RESET -1
 #define OLED_ADDRESS 0x3C
 
@@ -38,3 +40,36 @@ void displayToOLED(const SensorData& data) {
 
   display.display();
 }
+
+
+
+void checkAndClearDisplay() {
+  // Check if the cursor is on the bottom line of the display
+  if (display.getCursorY() > SCREEN_HEIGHT - TEXT_HEIGHT) {
+    display.clearDisplay();    // Clear the entire display
+    display.setCursor(0, 0);   // Reset the cursor to the top-left corner
+    display.display();         // Update the cleared display
+  }
+}
+
+void displayToOledText(const char* text) {
+  checkAndClearDisplay();  // Clear the display if at the bottom
+  display.print(text);     // Print the text (no newline)
+  display.display();       // Update the display
+}
+
+void displayToOledLine(const char* text) {
+  checkAndClearDisplay();  // Clear the display if at the bottom
+  display.println(text);   // Print the text with a newline
+  display.display();       // Update the display
+}
+
+
+// void displayToOledText(const char* text) {
+//   display.print(text);
+//   display.display();
+// }
+
+// void displayToOledLine(const char* text) {
+//   display.println(text);
+//   display.display();
